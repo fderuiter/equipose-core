@@ -12,8 +12,16 @@ services:
         condition: service_started
     ports:
       - "${GATEWAY_PORT:-8080}:80"
+    environment:
+      - APP1_PORT=${APP1_PORT:-80}
+      - APP2_PORT=${APP2_PORT:-80}
+      - APP3_PORT=${APP3_PORT:-80}
+      - APP1_NAME=${APP1_NAME:-app1}
+      - APP2_NAME=${APP2_NAME:-app2}
+      - APP3_NAME=${APP3_NAME:-app3}
+      - NGINX_ENVSUBST_FILTER=APP1_PORT|APP2_PORT|APP3_PORT|APP1_NAME|APP2_NAME|APP3_NAME
     volumes:
-      - ./gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./gateway/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./gateway/generate-config.sh:/docker-entrypoint.d/99-generate-config.sh:ro
     networks:
       - equipose

@@ -37,7 +37,7 @@ server {
         proxy_set_header Remote-User "";
         proxy_set_header HTTP_X_REMOTE_USER "";
 
-        set $app1_upstream http://app1:80;
+        set $app1_upstream http://${APP1_NAME}:${APP1_PORT};
         proxy_pass $app1_upstream/;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -50,7 +50,7 @@ server {
         proxy_set_header Remote-User "";
         proxy_set_header HTTP_X_REMOTE_USER "";
 
-        set $app2_upstream http://app2:80;
+        set $app2_upstream http://${APP2_NAME}:${APP2_PORT};
         proxy_pass $app2_upstream/;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -69,7 +69,7 @@ server {
         # Get X-Remote-User header from auth-service
         auth_request_set $user $upstream_http_x_remote_user;
 
-        set $app3_upstream http://app3:80;
+        set $app3_upstream http://${APP3_NAME}:${APP3_PORT};
         proxy_pass $app3_upstream/;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -79,4 +79,3 @@ server {
         proxy_set_header X-Remote-User $user;
     }
 }
-
