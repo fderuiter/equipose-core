@@ -1,0 +1,130 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Equipose Gateway API",
+    "version": "1.0.0",
+    "description": "Centralized OpenAPI specification defining all exposed gateway routes and expected backend payloads."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Local API Gateway"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Gateway health check",
+        "responses": {
+          "200": {
+            "description": "Gateway is healthy",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "ok\n"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/logout": {
+      "post": {
+        "summary": "Logout user and invalidate sessions",
+        "responses": {
+          "200": {
+            "description": "Logged out successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Logged out successfully"
+                    },
+                    "redirect": {
+                      "type": "string",
+                      "example": "/"
+                    }
+                  },
+                  "required": ["message", "redirect"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/app1/": {
+      "get": {
+        "summary": "Access Application 1",
+        "responses": {
+          "200": {
+            "description": "Successful response from app1",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/app2/": {
+      "get": {
+        "summary": "Access Application 2",
+        "responses": {
+          "200": {
+            "description": "Successful response from app2",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/app3/": {
+      "get": {
+        "summary": "Access Application 3 (Requires SSO Session)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response from app3",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}
