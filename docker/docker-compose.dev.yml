@@ -1,0 +1,43 @@
+version: '3.8'
+
+# Docker Compose overrides for local development
+# This file extends services defined in the main docker-compose.yml to optimize for a developer's local environment.
+
+services:
+  gateway:
+    environment:
+      - ENV=development
+    ports:
+      # Expose development gateway port
+      - "8080:80"
+
+  app1:
+    environment:
+      - DEBUG=true
+      - APP_ENV=development
+    volumes:
+      # Mount server source for rapid local feedback and hot-reloads
+      - ../gateway/server.py:/server.py
+
+  app2:
+    environment:
+      - DEBUG=true
+      - APP_ENV=development
+    volumes:
+      - ../gateway/server.py:/server.py
+
+  app3:
+    environment:
+      - DEBUG=true
+      - APP_ENV=development
+    volumes:
+      - ../gateway/server.py:/server.py
+
+  auth-service:
+    environment:
+      - NODE_ENV=development
+      - DEBUG=auth:*
+    ports:
+      - "9229:9229" # Node.js V8 inspector port for remote debugger attachment
+    volumes:
+      - ../gateway/auth-service:/app
