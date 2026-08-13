@@ -1,5 +1,5 @@
 /* Equipose Brand Theme */
-:root {
+:root, :host {
   --primary-color: #005A9C;
   --primary-hover: #004080;
   --bg-color: #F8F9FA;
