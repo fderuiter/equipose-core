@@ -1,0 +1,12 @@
+site_name: Developer Portal
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - search.highlight
+    - search.suggest
+
+nav:
+  - Welcome: index.md
+  - Architecture: architecture.md
+  - Local Setup: setup.md
