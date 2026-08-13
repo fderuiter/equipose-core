@@ -1,36 +1,86 @@
-class GlobalNav {
+const ParentClass = (typeof HTMLElement !== 'undefined') ? HTMLElement : class {};
+
+class GlobalNav extends ParentClass {
   constructor(config = {}) {
+    super();
+    this._eventListenersMap = new Map();
     this.config = {
       activeRoute: '',
       redirectUrl: '/',
       onLogout: null,
       ...config
     };
-    this.initDOM();
-    this.bindEvents();
   }
 
   static init(config) {
     if (!this.instance) {
-      this.instance = new GlobalNav(config);
+      let navEl = document.querySelector('global-nav');
+      if (!navEl) {
+        const existingIdEl = document.getElementById('global-nav');
+        if (existingIdEl && existingIdEl.tagName === 'GLOBAL-NAV') {
+          navEl = existingIdEl;
+        } else {
+          navEl = document.createElement('global-nav');
+          navEl.id = 'global-nav';
+          if (existingIdEl) {
+            existingIdEl.replaceWith(navEl);
+          } else {
+            document.body.insertBefore(navEl, document.body.firstChild);
+          }
+        }
+      }
+      
+      if (config) {
+        if (config.activeRoute) {
+          navEl.setAttribute('active-route', config.activeRoute);
+        }
+        if (config.redirectUrl !== undefined) {
+          navEl.config.redirectUrl = config.redirectUrl;
+        }
+        if (config.onLogout !== undefined) {
+          navEl.config.onLogout = config.onLogout;
+        }
+      }
+      this.instance = navEl;
     }
     return this.instance;
   }
 
-  initDOM() {
-    // Create the navigation container if it doesn't exist
-    let navEl = document.getElementById('global-nav');
-    if (!navEl) {
-      navEl = document.createElement('nav');
-      navEl.id = 'global-nav';
-      document.body.insertBefore(navEl, document.body.firstChild);
+  static get observedAttributes() {
+    return ['active-route'];
+  }
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (name === 'active-route') {
+      this.config.activeRoute = newValue || '';
+      this.updateActiveHighlight();
     }
-    this.navEl = navEl;
+  }
+
+  connectedCallback() {
+    this.initDOM();
+    this.bindEvents();
+    
+    const activeRouteAttr = this.getAttribute('active-route');
+    if (activeRouteAttr) {
+      this.config.activeRoute = activeRouteAttr;
+    }
+    this.updateActiveHighlight();
+  }
+
+  disconnectedCallback() {
+    this.destroy();
+  }
+
+  initDOM() {
+    if (!this.id) {
+      this.id = 'global-nav';
+    }
     this.render();
   }
 
   render() {
-    this.navEl.innerHTML = `
+    this.innerHTML = `
       <div class="nav-container">
         <div class="nav-brand">
           <a href="/">Equipose</a>
@@ -48,11 +98,33 @@ class GlobalNav {
         </button>
       </div>
     `;
+    this.updateActiveHighlight();
+  }
+
+  updateActiveHighlight() {
+    const activeRoute = this.getAttribute('active-route') || this.config.activeRoute || '';
+    const menuEl = this.querySelector('#nav-menu');
+    if (menuEl) {
+      const links = menuEl.querySelectorAll('a');
+      links.forEach(link => {
+        const href = link.getAttribute('href') || '';
+        let appKey = '';
+        if (href.includes('/app1/')) appKey = 'app1';
+        else if (href.includes('/app2/')) appKey = 'app2';
+        else if (href.includes('/app3/')) appKey = 'app3';
+
+        if (appKey && appKey === activeRoute) {
+          link.classList.add('active');
+        } else {
+          link.classList.remove('active');
+        }
+      });
+    }
   }
 
   bindEvents() {
-    this.toggleBtn = this.navEl.querySelector('.nav-toggle');
-    this.menuEl = this.navEl.querySelector('#nav-menu');
+    this.toggleBtn = this.querySelector('.nav-toggle');
+    this.menuEl = this.querySelector('#nav-menu');
     
     this.toggleHandler = () => {
       const isOpen = this.toggleBtn.getAttribute('aria-expanded') === 'true';
@@ -63,13 +135,54 @@ class GlobalNav {
       this.toggleBtn.addEventListener('click', this.toggleHandler);
     }
 
-    // Subscribe/Listen to auth state events
+    this.clickNavigationHandler = (e) => {
+      const anchor = e.target.closest('a');
+      if (!anchor) return;
+
+      const href = anchor.getAttribute('href');
+      if (!href) return;
+
+      const hasListener = this.hasEventListener('navigate') || this.hasEventListener('active-route');
+      if (hasListener) {
+        let appKey = '';
+        if (href.includes('/app1/')) appKey = 'app1';
+        else if (href.includes('/app2/')) appKey = 'app2';
+        else if (href.includes('/app3/')) appKey = 'app3';
+
+        const navigateEvent = new CustomEvent('navigate', {
+          detail: { href: href, route: appKey },
+          cancelable: true,
+          bubbles: true
+        });
+        
+        const activeRouteEvent = new CustomEvent('active-route', {
+          detail: { href: href, route: appKey },
+          cancelable: true,
+          bubbles: true
+        });
+
+        const navigatePrevented = !this.dispatchEvent(navigateEvent);
+        const activeRoutePrevented = !this.dispatchEvent(activeRouteEvent);
+
+        const isModern = href.includes('/app1/');
+        if (navigatePrevented || activeRoutePrevented || (isModern && hasListener)) {
+          e.preventDefault();
+        }
+      }
+    };
+    
+    this.addEventListener('click', this.clickNavigationHandler);
+
     this.authHandler = (e) => {
       if (e && e.detail) {
         this.renderUserSession(e.detail);
+      } else {
+        this.renderUserSession(null);
       }
     };
     window.addEventListener('auth-state-changed', this.authHandler);
+
+    this.renderUserSession(null);
   }
 
   toggleMobileMenu(isOpen) {
@@ -85,7 +198,7 @@ class GlobalNav {
   }
 
   renderUserSession(userData) {
-    const sessionEl = this.navEl.querySelector('#user-session');
+    const sessionEl = this.querySelector('#user-session');
     if (!sessionEl) return;
 
     if (userData && (userData.username || userData.name || userData.email)) {
@@ -109,15 +222,12 @@ class GlobalNav {
   }
 
   async logout() {
-    // Invalidate the legacy session and clear modern authentication tokens concurrently
     try {
-      // Clear client side storage first
       localStorage.removeItem('access_token');
       localStorage.removeItem('token');
       sessionStorage.removeItem('access_token');
       sessionStorage.removeItem('token');
 
-      // Call the concurrent session invalidation endpoint
       const response = await fetch('/logout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
@@ -129,14 +239,11 @@ class GlobalNav {
         this.config.onLogout();
       }
 
-      // Concurrently dispatch event
       window.dispatchEvent(new CustomEvent('auth-state-changed', { detail: null }));
 
-      // Redirect user to the login/home page
       window.location.href = data.redirect || this.config.redirectUrl || '/';
     } catch (err) {
       console.error('Logout error:', err);
-      // Fallback redirect
       window.location.href = this.config.redirectUrl || '/';
     }
   }
@@ -145,15 +252,47 @@ class GlobalNav {
     if (this.toggleBtn && this.toggleHandler) {
       this.toggleBtn.removeEventListener('click', this.toggleHandler);
     }
-    window.removeEventListener('auth-state-changed', this.authHandler);
-    if (this.navEl && this.navEl.parentNode) {
-      this.navEl.parentNode.removeChild(this.navEl);
+    if (this.clickNavigationHandler) {
+      this.removeEventListener('click', this.clickNavigationHandler);
     }
-    GlobalNav.instance = null;
+    window.removeEventListener('auth-state-changed', this.authHandler);
+    
+    if (GlobalNav.instance === this) {
+      GlobalNav.instance = null;
+    }
+  }
+
+  addEventListener(type, listener, options) {
+    super.addEventListener(type, listener, options);
+    if (!this._eventListenersMap) {
+      this._eventListenersMap = new Map();
+    }
+    if (!this._eventListenersMap.has(type)) {
+      this._eventListenersMap.set(type, new Set());
+    }
+    this._eventListenersMap.get(type).add(listener);
+  }
+
+  removeEventListener(type, listener, options) {
+    super.removeEventListener(type, listener, options);
+    if (this._eventListenersMap && this._eventListenersMap.has(type)) {
+      const set = this._eventListenersMap.get(type);
+      set.delete(listener);
+      if (set.size === 0) {
+        this._eventListenersMap.delete(type);
+      }
+    }
+  }
+
+  hasEventListener(type) {
+    return this._eventListenersMap && this._eventListenersMap.has(type) && this._eventListenersMap.get(type).size > 0;
   }
 }
 
-// Export if module environment, otherwise expose globally
+if (typeof window !== 'undefined' && window.customElements && !window.customElements.get('global-nav')) {
+  window.customElements.define('global-nav', GlobalNav);
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = GlobalNav;
 } else {
