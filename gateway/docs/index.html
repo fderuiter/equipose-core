@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Equipose API Catalog</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+  <link rel="stylesheet" href="/shared-ui/equipose-theme.css" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-color, #f4f6f9);
+      font-family: var(--font-family, sans-serif);
+    }
+    .catalog-container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 1.5rem;
+      background: white;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      border-radius: 8px;
+    }
+    .catalog-header {
+      border-bottom: 2px solid #edf2f7;
+      padding-bottom: 1.5rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .catalog-title {
+      font-size: 1.75rem;
+      font-weight: bold;
+      color: #2d3748;
+      margin: 0;
+    }
+    .selector-container {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .selector-container label {
+      font-weight: 600;
+      color: #4a5568;
+    }
+    .service-selector {
+      padding: 0.5rem 2rem 0.5rem 1rem;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: 1px solid #cbd5e0;
+      background-color: white;
+      color: #2d3748;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      transition: border-color 0.2s;
+    }
+    .service-selector:focus {
+      outline: none;
+      border-color: #3182ce;
+    }
+    #swagger-ui {
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <global-nav active-route="docs"></global-nav>
+
+  <div class="catalog-container">
+    <div class="catalog-header">
+      <h1 class="catalog-title">Equipose API Catalog</h1>
+      <div class="selector-container">
+        <label for="service-select">Select Microservice:</label>
+        <select id="service-select" class="service-selector">
+          <option value="/app1/openapi.json">App 1 (Modern)</option>
+          <option value="/app2/openapi.json">App 2</option>
+          <option value="/app3/openapi.json">App 3 (Legacy Tomcat)</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="swagger-ui"></div>
+  </div>
+
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+  <script src="/shared-ui/global-nav.js"></script>
+  <script>
+    window.onload = () => {
+      let ui;
+      const select = document.getElementById('service-select');
+      
+      const loadSpec = (url) => {
+        ui = SwaggerUIBundle({
+          url: url,
+          dom_id: '#swagger-ui',
+          deepLinking: true,
+          presets: [
+            SwaggerUIBundle.presets.apis,
+            SwaggerUIStandalonePreset
+          ],
+          plugins: [
+            SwaggerUIBundle.plugins.DownloadUrl
+          ],
+          layout: "BaseLayout"
+        });
+      };
+
+      // Load initial service
+      loadSpec(select.value);
+
+      // Reload when user switches option
+      select.addEventListener('change', (e) => {
+        loadSpec(e.target.value);
+      });
+    };
+  </script>
+</body>
+</html>
