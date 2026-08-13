@@ -1,0 +1,108 @@
+services:
+  gateway:
+    image: nginx:1.27-alpine
+    depends_on:
+      app1:
+        condition: service_started
+      app2:
+        condition: service_started
+      app3:
+        condition: service_started
+    ports:
+      - "${GATEWAY_PORT:-8080}:80"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - equipose
+
+  app1:
+    image: ${APP1_IMAGE:-nginxdemos/hello:plain-text}
+    environment:
+      APP_NAME: ${APP1_NAME:-app1}
+      APP_PORT: ${APP1_PORT:-80}
+      DATABASE_URL: postgresql://${DB1_USER:-app1}:${DB1_PASSWORD:-app1}@db1:5432/${DB1_NAME:-app1}
+    depends_on:
+      db1:
+        condition: service_healthy
+    networks:
+      - equipose
+
+  db1:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB1_NAME:-app1}
+      POSTGRES_USER: ${DB1_USER:-app1}
+      POSTGRES_PASSWORD: ${DB1_PASSWORD:-app1}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB1_USER:-app1} -d ${DB1_NAME:-app1}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - db1-data:/var/lib/postgresql/data
+    networks:
+      - equipose
+
+  app2:
+    image: ${APP2_IMAGE:-nginxdemos/hello:plain-text}
+    environment:
+      APP_NAME: ${APP2_NAME:-app2}
+      APP_PORT: ${APP2_PORT:-80}
+      DATABASE_URL: postgresql://${DB2_USER:-app2}:${DB2_PASSWORD:-app2}@db2:5432/${DB2_NAME:-app2}
+    depends_on:
+      db2:
+        condition: service_healthy
+    networks:
+      - equipose
+
+  db2:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB2_NAME:-app2}
+      POSTGRES_USER: ${DB2_USER:-app2}
+      POSTGRES_PASSWORD: ${DB2_PASSWORD:-app2}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB2_USER:-app2} -d ${DB2_NAME:-app2}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - db2-data:/var/lib/postgresql/data
+    networks:
+      - equipose
+
+  app3:
+    image: ${APP3_IMAGE:-nginxdemos/hello:plain-text}
+    environment:
+      APP_NAME: ${APP3_NAME:-app3}
+      APP_PORT: ${APP3_PORT:-80}
+      DATABASE_URL: postgresql://${DB3_USER:-app3}:${DB3_PASSWORD:-app3}@db3:5432/${DB3_NAME:-app3}
+    depends_on:
+      db3:
+        condition: service_healthy
+    networks:
+      - equipose
+
+  db3:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB3_NAME:-app3}
+      POSTGRES_USER: ${DB3_USER:-app3}
+      POSTGRES_PASSWORD: ${DB3_PASSWORD:-app3}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB3_USER:-app3} -d ${DB3_NAME:-app3}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - db3-data:/var/lib/postgresql/data
+    networks:
+      - equipose
+
+networks:
+  equipose:
+
+volumes:
+  db1-data:
+  db2-data:
+  db3-data:
