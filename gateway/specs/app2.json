@@ -1,0 +1,52 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "App 2",
+    "version": "1.0.0",
+    "description": "Service 2 of the Equipose core stack"
+  },
+  "servers": [
+    {
+      "url": "/app2",
+      "description": "App 2 Gateway Endpoint"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Get Greeting",
+        "description": "Returns a friendly greeting with details of received headers.",
+        "responses": {
+          "200": {
+            "description": "A successful greeting response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Hello from app2!\n\nReceived Headers:\n..."
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Post Greeting",
+        "description": "Handles POST requests similarly to GET.",
+        "responses": {
+          "200": {
+            "description": "A successful greeting response from POST",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Hello from app2!\n\nReceived Headers:\n..."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
