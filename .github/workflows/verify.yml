@@ -1,0 +1,98 @@
+name: Gateway Validation
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start stack
+        run: |
+          ./scripts/up.sh -d
+
+      - name: Verify Nginx gateway health and routing (default ports)
+        run: |
+          echo "Waiting for gateway and services to start up..."
+          max_attempts=30
+          attempt=1
+          until curl -s -f http://localhost:8080/health || [ $attempt -eq $max_attempts ]; do
+            echo "Attempt $attempt of $max_attempts: Gateway is not ready yet, sleeping 2 seconds..."
+            sleep 2
+            attempt=$((attempt + 1))
+          done
+          
+          # Check health of the gateway
+          echo "Checking gateway health endpoint:"
+          curl -v http://localhost:8080/health
+          
+          # Check proxying to app1 (routed through gateway)
+          echo "Checking app1 endpoint (routed through gateway):"
+          curl -v http://localhost:8080/app1/
+          
+          # Check proxying to app2
+          echo "Checking app2 endpoint (routed through gateway):"
+          curl -v http://localhost:8080/app2/
+
+      - name: Verify dynamic port resolution with custom ports
+        run: |
+          echo "Stopping stack..."
+          ./scripts/down.sh -v
+          
+          echo "Creating custom .env with overridden service ports..."
+          cp .env.example .env
+          sed -i 's/APP1_PORT=80/APP1_PORT=8081/g' .env
+          sed -i 's/APP2_PORT=80/APP2_PORT=8082/g' .env
+          sed -i 's/APP3_PORT=80/APP3_PORT=8083/g' .env
+          
+          echo "Starting stack with custom ports..."
+          ./scripts/up.sh -d
+          
+          echo "Waiting for gateway and services to start up..."
+          max_attempts=30
+          attempt=1
+          until curl -s -f http://localhost:8080/health || [ $attempt -eq $max_attempts ]; do
+            echo "Attempt $attempt of $max_attempts: Gateway is not ready yet, sleeping 2 seconds..."
+            sleep 2
+            attempt=$((attempt + 1))
+          done
+          
+          # Check proxying to app1 with custom port
+          echo "Checking app1 endpoint (should succeed on custom port 8081):"
+          curl -v http://localhost:8080/app1/
+          
+          # Check proxying to app2 with custom port
+          echo "Checking app2 endpoint (should succeed on custom port 8082):"
+          curl -v http://localhost:8080/app2/
+
+      - name: Test environment reset workflow
+        run: |
+          echo "Testing environment reset..."
+          ./scripts/reset-env.sh -d
+          
+          echo "Waiting for gateway to restart..."
+          max_attempts=30
+          attempt=1
+          until curl -s -f http://localhost:8080/health || [ $attempt -eq $max_attempts ]; do
+            echo "Attempt $attempt of $max_attempts: Gateway is not ready yet, sleeping 2 seconds..."
+            sleep 2
+            attempt=$((attempt + 1))
+          done
+          
+          echo "Checking health again after reset:"
+          curl -v http://localhost:8080/health
+
+      - name: Stop and clean stack
+        if: always()
+        run: |
+          ./scripts/down.sh -v
