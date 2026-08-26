@@ -10,9 +10,28 @@ This repository is the local integration layer for the Equipose stack.
 - `/home/runner/work/equipose-core/equipose-core/scripts/up.sh` boots the stack with the shared environment file.
 - `/home/runner/work/equipose-core/equipose-core/scripts/down.sh` stops the shared stack cleanly.
 
-## Quick start
+## API Contract Testing
 
-1. Copy `/home/runner/work/equipose-core/equipose-core/.env.example` to `.env`.
-2. Adjust the application images as needed for your three services.
-3. Run `./scripts/up.sh`.
-4. Reach the services through `http://localhost:8080/app1/`, `/app2/`, and `/app3/`.
+An automated contract testing suite verifies the API gateway configuration against a centralized OpenAPI specification (`openapi.json`).
+
+### Running the Contract Tests
+
+The contract testing container spins up automatically when starting the stack:
+```bash
+./scripts/up.sh
+```
+
+To run the contract tests in a headless CI/CD pipeline and get the exact exit code of the contract tests:
+```bash
+docker compose up --exit-code-from contract-testing
+```
+
+To run the runner locally on the host:
+```bash
+node contract-testing/runner.js
+```
+
+To execute the self-test suite of the contract testing tool:
+```bash
+node contract-testing/test-contract-runner.js
+```

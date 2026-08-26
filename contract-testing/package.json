@@ -1,0 +1,12 @@
+{
+  "name": "gateway-contract-testing",
+  "version": "1.0.0",
+  "description": "Dynamic OpenAPI contract testing runner for the Equipose Gateway",
+  "main": "runner.js",
+  "scripts": {
+    "test": "node runner.js"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2"
+  }
+}

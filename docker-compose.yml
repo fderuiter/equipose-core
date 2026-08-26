@@ -121,6 +121,25 @@ services:
     networks:
       - equipose
 
+  contract-testing:
+    image: node:22-slim
+    working_dir: /app/contract-testing
+    environment:
+      GATEWAY_URL: http://gateway:80
+      NGINX_CONF_PATH: /etc/nginx/conf.d/default.conf
+      OPENAPI_PATH: /app/openapi.json
+      PRIVATE_KEY_PATH: /etc/gateway/private.pem
+    volumes:
+      - .:/app
+      - ./gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./gateway/private.pem:/etc/gateway/private.pem:ro
+    command: node runner.js
+    depends_on:
+      gateway:
+        condition: service_started
+    networks:
+      - equipose
+
 networks:
   equipose:
 
