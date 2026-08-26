@@ -121,6 +121,17 @@ services:
     networks:
       - equipose
 
+  mkdocs:
+    image: squidfunk/mkdocs-material:9.5
+    container_name: mkdocs_portal
+    ports:
+      - "${DOCS_PORT:-8000}:8000"
+    volumes:
+      - .:/docs
+    command: serve --dev-addr 0.0.0.0:8000
+    networks:
+      - equipose
+
 networks:
   equipose:
 
