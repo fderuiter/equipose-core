@@ -1,0 +1,99 @@
+{
+  "id": "equipose-realm",
+  "realm": "equipose-realm",
+  "enabled": true,
+  "displayName": "Equipose SSO Realm",
+  "displayNameHtml": "<b>Equipose SSO</b>",
+  "sslRequired": "external",
+  "registrationAllowed": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Administrator privileges"
+      },
+      {
+        "name": "developer",
+        "description": "Developer privileges"
+      },
+      {
+        "name": "user",
+        "description": "Standard user privileges"
+      }
+    ]
+  },
+  "groups": [
+    {
+      "name": "Staff",
+      "path": "/Staff",
+      "realmRoles": [
+        "developer"
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "gateway-client",
+      "name": "Equipose Gateway Client",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "rootUrl": "http://localhost:8080",
+      "baseUrl": "/",
+      "redirectUris": [
+        "http://localhost:8080/*"
+      ],
+      "webOrigins": [
+        "*"
+      ]
+    },
+    {
+      "clientId": "auth-service-client",
+      "name": "Equipose Auth Subrequest Client",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "sso-mock-auth-service-secret-key-123456",
+      "directAccessGrantsEnabled": true,
+      "redirectUris": [
+        "http://auth-service:3000/*"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "testuser",
+      "enabled": true,
+      "email": "testuser@equipose.local",
+      "firstName": "Test",
+      "lastName": "User",
+      "realmRoles": [
+        "user"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "testpassword123",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "adminuser",
+      "enabled": true,
+      "email": "adminuser@equipose.local",
+      "firstName": "Admin",
+      "lastName": "User",
+      "realmRoles": [
+        "admin",
+        "user"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "adminpassword123",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

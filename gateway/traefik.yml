@@ -1,0 +1,108 @@
+# Traefik Static Configuration Template
+# This file defines entry points, providers, and general logging options.
+
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+# 1. Static Configuration Entry Points (Ports 80 and 443)
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+
+# 2. Provider Definitions
+providers:
+  docker:
+    exposedByDefault: false
+  file:
+    # Folder containing dynamic routing files
+    directory: /etc/traefik
+    watch: true
+
+# 3. Telemetry and Logging Configuration
+log:
+  level: INFO
+  format: common
+
+accessLog:
+  format: common
+
+# 4. Traefik Dynamic Configuration Template
+# (Typically defined in dynamic routing files loaded by the provider above)
+http:
+  routers:
+    # Router for Application 1 (Secured with local SSO Auth subrequest forwarding)
+    app1-router:
+      rule: "PathPrefix(`/app1`)"
+      service: app1-service
+      entryPoints:
+        - web
+      middlewares:
+        - sso-auth-middleware
+        - cors-headers
+
+    # Router for Application 2
+    app2-router:
+      rule: "PathPrefix(`/app2`)"
+      service: app2-service
+      entryPoints:
+        - web
+
+    # Router for Application 3
+    app3-router:
+      rule: "PathPrefix(`/app3`)"
+      service: app3-service
+      entryPoints:
+        - web
+
+    # Router for Local Identity SSO Authenticator
+    auth-router:
+      rule: "PathPrefix(`/auth`)"
+      service: auth-service
+      entryPoints:
+        - web
+
+  services:
+    # Service Load Balancing Config
+    app1-service:
+      loadBalancer:
+        servers:
+          - url: "http://app1:80"
+    app2-service:
+      loadBalancer:
+        servers:
+          - url: "http://app2:80"
+    app3-service:
+      loadBalancer:
+        servers:
+          - url: "http://app3:80"
+    auth-service:
+      loadBalancer:
+        servers:
+          - url: "http://auth-service:3000"
+
+  middlewares:
+    # Gateway SSO Forward Auth Subrequest Forwarding Rules
+    sso-auth-middleware:
+      forwardAuth:
+        address: "http://auth-service:3000/verify"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - "X-User-ID"
+          - "X-User-Roles"
+
+    # CORS Headers Middleware Definition
+    cors-headers:
+      headers:
+        accessControlAllowMethods:
+          - "GET"
+          - "POST"
+          - "OPTIONS"
+          - "PUT"
+          - "DELETE"
+        accessControlAllowHeaders: "*"
+        accessControlAllowOriginList: "*"
+        accessControlMaxAge: 100
+        addVaryHeader: true
