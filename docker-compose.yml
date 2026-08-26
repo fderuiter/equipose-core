@@ -1,3 +1,8 @@
+x-db-healthcheck: &db-healthcheck
+  interval: 10s
+  timeout: 5s
+  retries: 5
+
 services:
   gateway:
     image: nginx:1.27
@@ -40,10 +45,8 @@ services:
       POSTGRES_USER: ${DB1_USER:-app1}
       POSTGRES_PASSWORD: ${DB1_PASSWORD:-app1}
     healthcheck:
+      <<: *db-healthcheck
       test: ["CMD-SHELL", "pg_isready -U ${DB1_USER:-app1} -d ${DB1_NAME:-app1}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     volumes:
       - db1-data:/var/lib/postgresql/data
     networks:
@@ -71,10 +74,8 @@ services:
       POSTGRES_USER: ${DB2_USER:-app2}
       POSTGRES_PASSWORD: ${DB2_PASSWORD:-app2}
     healthcheck:
+      <<: *db-healthcheck
       test: ["CMD-SHELL", "pg_isready -U ${DB2_USER:-app2} -d ${DB2_NAME:-app2}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     volumes:
       - db2-data:/var/lib/postgresql/data
     networks:
@@ -102,10 +103,8 @@ services:
       POSTGRES_USER: ${DB3_USER:-app3}
       POSTGRES_PASSWORD: ${DB3_PASSWORD:-app3}
     healthcheck:
+      <<: *db-healthcheck
       test: ["CMD-SHELL", "pg_isready -U ${DB3_USER:-app3} -d ${DB3_NAME:-app3}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     volumes:
       - db3-data:/var/lib/postgresql/data
     networks:
