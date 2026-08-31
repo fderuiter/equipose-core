@@ -190,4 +190,46 @@ describe('GlobalNav Custom Element', () => {
     expect(document.body.contains(instance)).toBe(false);
     expect(GlobalNav.instance).toBeNull();
   });
+
+  test('should accept postMessage events from allowed same origin and update user session', () => {
+    const el = document.createElement('global-nav');
+    document.body.appendChild(el);
+
+    const msgEvent = new MessageEvent('message', {
+      data: { type: 'auth-state-changed', detail: { username: 'valid_user' } },
+      origin: window.location.origin
+    });
+    window.dispatchEvent(msgEvent);
+
+    expect(el.userData).toEqual({ username: 'valid_user' });
+  });
+
+  test('should reject postMessage events from unauthorized origins', () => {
+    const el = document.createElement('global-nav');
+    document.body.appendChild(el);
+
+    const msgEvent = new MessageEvent('message', {
+      data: { type: 'auth-state-changed', detail: { username: 'attacker' } },
+      origin: 'https://evil.com'
+    });
+    window.dispatchEvent(msgEvent);
+
+    expect(el.userData).toBeNull();
+  });
+
+  test('should accept postMessage events from configured EQUIPOSE_ALLOWED_ORIGINS whitelist', () => {
+    window.EQUIPOSE_ALLOWED_ORIGINS = ['https://trusted-partner.com'];
+    const el = document.createElement('global-nav');
+    document.body.appendChild(el);
+
+    const msgEvent = new MessageEvent('message', {
+      data: { type: 'auth-state-changed', detail: { username: 'trusted_partner_user' } },
+      origin: 'https://trusted-partner.com'
+    });
+    window.dispatchEvent(msgEvent);
+
+    expect(el.userData).toEqual({ username: 'trusted_partner_user' });
+
+    delete window.EQUIPOSE_ALLOWED_ORIGINS;
+  });
 });

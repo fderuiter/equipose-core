@@ -111,9 +111,36 @@ class GlobalNav extends HTMLElement {
   }
 
   disconnectedCallback() {
-    if (this._authHandlerBound && this.authHandler) {
-      window.removeEventListener('auth-state-changed', this.authHandler);
+    if (this._authHandlerBound) {
+      if (this.authHandler) {
+        window.removeEventListener('auth-state-changed', this.authHandler);
+      }
+      if (this.messageHandler) {
+        window.removeEventListener('message', this.messageHandler);
+      }
       this._authHandlerBound = false;
+    }
+  }
+
+  _isOriginAllowed(origin) {
+    if (!origin) return false;
+    if (typeof window !== 'undefined' && origin === window.location.origin) return true;
+    const configured = (typeof window !== 'undefined' && window.EQUIPOSE_ALLOWED_ORIGINS) ||
+                       (typeof window !== 'undefined' && window.EquiposeConfig && (window.EquiposeConfig.ALLOWED_ORIGINS || window.EquiposeConfig.allowedOrigins)) ||
+                       (typeof window !== 'undefined' && window.ALLOWED_ORIGINS) ||
+                       (typeof window !== 'undefined' && window.allowedOrigins) ||
+                       this._config.allowedOrigins;
+    if (!configured) return false;
+    const allowedList = Array.isArray(configured)
+      ? configured
+      : String(configured).split(',').map(s => s.trim());
+    return allowedList.includes(origin);
+  }
+
+  postMessageToParent(message, targetOrigin) {
+    const origin = targetOrigin || (typeof window !== 'undefined' && window.location ? window.location.origin : '*');
+    if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
+      window.parent.postMessage(message, origin === '*' ? window.location.origin : origin);
     }
   }
 
@@ -299,6 +326,32 @@ class GlobalNav extends HTMLElement {
         }
       };
       window.addEventListener('auth-state-changed', this.authHandler);
+
+      this.messageHandler = (e) => {
+        if (!this._isOriginAllowed(e.origin)) {
+          return;
+        }
+        if (!e.data) return;
+        let data = e.data;
+        if (typeof data === 'string' && data.startsWith('{')) {
+          try {
+            data = JSON.parse(data);
+          } catch (err) {
+            return;
+          }
+        }
+        if (!data || typeof data !== 'object') return;
+
+        if (data.type === 'auth-state-changed' || data.action === 'auth-state-changed') {
+          this.userData = data.detail !== undefined ? data.detail : data.userData;
+        } else if (data.type === 'logout' || data.action === 'logout') {
+          this.logout();
+        } else if (data.type === 'navigate' || data.action === 'navigate') {
+          if (data.route) this.activeRoute = data.route;
+        }
+      };
+      window.addEventListener('message', this.messageHandler);
+
       this._authHandlerBound = true;
     }
   }
