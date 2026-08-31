@@ -3,12 +3,64 @@ const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
+const neo4j = require('neo4j-driver');
 
 const app = express();
 app.use(cookieParser());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
+
+// Initialize Neo4j driver
+const NEO4J_URI = process.env.NEO4J_URI || 'bolt://localhost:7687';
+const NEO4J_USER = process.env.NEO4J_USER || 'neo4j';
+const NEO4J_PASSWORD = process.env.NEO4J_PASSWORD || 'password';
+
+let driver = null;
+try {
+  driver = neo4j.driver(NEO4J_URI, neo4j.auth.basic(NEO4J_USER, NEO4J_PASSWORD));
+} catch (e) {
+  console.error('Failed to initialize Neo4j driver:', e.message);
+}
+
+async function recordGraphTelemetry(decoded, username) {
+  if (!driver) return;
+  const session = driver.session();
+  try {
+    const email = decoded.email || decoded.upn || '';
+    const firstName = decoded.given_name || decoded.firstName || decoded.first_name || '';
+    const lastName = decoded.family_name || decoded.lastName || decoded.last_name || '';
+    const role = decoded.role || decoded.roles || decoded.system_role || 'RESEARCHASSISTANT';
+    const studyId = decoded.active_study_id || decoded.study_id || decoded.study || 1;
+    const tenantId = decoded.tenant_id || 'default';
+
+    const cypher = `
+      MERGE (u:User {username: $username})
+      ON CREATE SET u.email = $email, u.firstName = $firstName, u.lastName = $lastName, u.createdAt = datetime()
+      ON MATCH SET u.email = $email, u.firstName = $firstName, u.lastName = $lastName, u.updatedAt = datetime()
+
+      MERGE (r:Role {name: $role})
+
+      CREATE (u)-[:AUTHENTICATED {timestamp: datetime(), tenantId: $tenantId, provider: 'OIDC'}]->(a:AuthEvent {status: 'SUCCESS', timestamp: datetime()})
+
+      CREATE (u)-[hr:HAS_ROLE_HISTORY {assignedAt: datetime(), studyId: $studyId, source: 'OIDC'}]->(r)
+    `;
+
+    await session.executeWrite(tx => tx.run(cypher, {
+      username,
+      email,
+      firstName,
+      lastName,
+      role: String(role),
+      studyId: Number(studyId),
+      tenantId: String(tenantId)
+    }));
+  } catch (err) {
+    console.error('Neo4j telemetry error:', err.message);
+  } finally {
+    await session.close();
+  }
+}
 
 // Load the public key from the environment variable or from a mounted file
 let publicKey = process.env.JWT_PUBLIC_KEY || '';
@@ -81,6 +133,11 @@ app.get('/validate', (req, res) => {
     
     console.log(`Successfully validated token for user: ${username}`);
     
+    // Asynchronously record Neo4j graph telemetry without delaying response
+    recordGraphTelemetry(decoded, username).catch(telemetryErr => {
+      console.error('Non-blocking Neo4j graph telemetry error:', telemetryErr.message);
+    });
+
     // Set response header to pass to Nginx
     res.setHeader('X-Remote-User', username);
     return res.status(200).send('OK');
