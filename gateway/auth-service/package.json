@@ -5,7 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "cookie-parser": "^1.4.6",
-    "express": "^4.19.2",
+    "express": "^5.2.1",
     "jsonwebtoken": "^9.0.2"
   }
 }
